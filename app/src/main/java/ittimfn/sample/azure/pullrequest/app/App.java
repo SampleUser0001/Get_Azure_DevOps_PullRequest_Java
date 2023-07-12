@@ -23,8 +23,6 @@ public class App {
 
         GetPullRequestController controller = new GetPullRequestController(repositoryId, pullrequestId);
         controller.get();
-        controller.get2();
-        controller.print_curl();
     }
 
     public static void main(String[] args) throws IOException {

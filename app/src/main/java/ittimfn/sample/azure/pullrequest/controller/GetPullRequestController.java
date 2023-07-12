@@ -10,6 +10,7 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.DefaultRedirectStrategy;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.util.EntityUtils;
+import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.HttpHost;
 import org.apache.http.client.ClientProtocolException;
@@ -20,6 +21,8 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
 
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.util.Base64;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -59,8 +62,9 @@ public class GetPullRequestController {
     /**
      * APIを叩いて、実行結果を取得する。
      * @return
+     * @throws UnsupportedEncodingException
      */
-    public PullRequestModel get() {
+    public PullRequestModel get() throws UnsupportedEncodingException {
 
         PullRequestModel model = new PullRequestModel();
 
@@ -72,6 +76,10 @@ public class GetPullRequestController {
         String user = ApplicationPropertiesEnum.USER.getValue();
         String token = ApplicationPropertiesEnum.TOKEN.getValue();
 
+        // 認証にクセがある。"user:token"をBase64でエンコードした値を、Basic認証で渡す必要がある。
+        String pass = user+":"+token;
+        String encodedPath = Base64.getEncoder().encodeToString(pass.getBytes("utf-8"));
+
         logger.debug("host name : {}", hostName);
         logger.debug("port : {}", port);
         logger.debug("user : {}", user);
@@ -82,39 +90,32 @@ public class GetPullRequestController {
             new UsernamePasswordCredentials(user, token)
         );
 
-        // CloseableHttpClient のインスタンス作成 作成時に認証情報を追加する。
-        CloseableHttpClient closeableHttpClient
+        HttpClient client 
             = HttpClients.custom()
-                         .setDefaultCredentialsProvider(credentialsProvider)
                          .setRedirectStrategy(new CustomRedirectStrategy())
                          .build();
 
         try {
             // GET する URL を指定
             HttpGet httpGet = new HttpGet(this.api);
+            httpGet.addHeader(HttpHeaders.AUTHORIZATION, "Basic " + encodedPath);
+            httpGet.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
             // リクエストを実行してレスポンスを取得
-            CloseableHttpResponse closeableHttpResponse = closeableHttpClient.execute(httpGet);
+            HttpResponse response = client.execute(httpGet);
 
             // レスポンスのBODYを取得
-            // HttpEntity httpEntity = closeableHttpResponse.getEntity();
-            // System.out.println(EntityUtils.toString(httpEntity));
+            HttpEntity httpEntity = response.getEntity();
 
-            logger.info("status code : {}", closeableHttpResponse.getStatusLine().getStatusCode());
+            // TODO Model化する。
+            System.out.println(EntityUtils.toString(httpEntity));
+
+            logger.info("status code : {}", response.getStatusLine().getStatusCode());
             
         } catch (Exception e) {
             e.printStackTrace();
         }        
         return model;
     }
-
-    // private Authenticator getAuthenticator() {
-    //     return new Authenticator() {
-    //         @Override
-    //         protected PasswordAuthentication getPasswordAuthentication() {
-    //             return new PasswordAuthentication("git", ApplicationPropertiesEnum.TOKEN.getValue().toCharArray());
-    //         }
-    //     };
-    // }
 
     private class CustomRedirectStrategy extends DefaultRedirectStrategy {
         @Override
@@ -134,45 +135,4 @@ public class GetPullRequestController {
         }
     }
 
-    public void get2() throws ClientProtocolException, IOException{
-        // Azure DevOpsのAPIエンドポイント
-        String apiUrl = "https://dev.azure.com/ittimfn/SampleProject/_apis/git/repositories/1ee52a0c-3836-454d-bbad-11e3d499afaa/pullRequests/1?api-version=6.1";
-        // String apiUrl = this.api;
-
-        // Azure DevOpsのPAT (Personal Access Token)
-        String personalAccessToken = ApplicationPropertiesEnum.TOKEN.getValue();
-        
-        // HttpClientのインスタンスを作成
-        HttpClient httpClient = HttpClients.createDefault();
-
-        // GETリクエストの作成
-        HttpGet httpGet = new HttpGet(apiUrl);
-
-        // HTTPヘッダーに認証トークンを追加
-        httpGet.setHeader(HttpHeaders.AUTHORIZATION, "Bearer " + personalAccessToken);
-        httpGet.setHeader(HttpHeaders.ACCEPT, "application/json");
-
-        // リクエストの実行
-        HttpResponse response = httpClient.execute(httpGet);
-
-        // レスポンスのステータスコードを取得
-        int statusCode = response.getStatusLine().getStatusCode();
-
-        // レスポンスのボディを取得
-        String responseBody = EntityUtils.toString(response.getEntity());
-
-        // レスポンスの処理
-        if (statusCode == 200) {
-            // リクエスト成功
-            System.out.println("Response Body: " + responseBody);
-        } else {
-            // リクエスト失敗
-            logger.warn("Request failed. Status code: {}", statusCode);
-            // System.out.println("Response Body: " + responseBody);
-        }        
-    }
-
-    public void print_curl() {
-        logger.debug(String.format("curl -s -u ittimfn:%s %s", ApplicationPropertiesEnum.TOKEN.getValue(), this.api));
-    }
 }
