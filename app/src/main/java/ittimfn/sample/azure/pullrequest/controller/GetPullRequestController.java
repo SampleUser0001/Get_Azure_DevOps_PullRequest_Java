@@ -20,12 +20,15 @@ import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClients;
 
-import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Base64;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonMappingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import ittimfn.sample.azure.pullrequest.enums.ApplicationPropertiesEnum;
 import ittimfn.sample.azure.pullrequest.model.PullRequestModel;
@@ -105,9 +108,9 @@ public class GetPullRequestController {
 
             // レスポンスのBODYを取得
             HttpEntity httpEntity = response.getEntity();
+            String json = EntityUtils.toString(httpEntity);
 
-            // TODO Model化する。
-            System.out.println(EntityUtils.toString(httpEntity));
+            model = this.convertToModel(json);
 
             logger.info("status code : {}", response.getStatusLine().getStatusCode());
             
@@ -133,6 +136,12 @@ public class GetPullRequestController {
             
             return isRedirect;
         }
+    }
+
+    private PullRequestModel convertToModel(String json) throws JsonMappingException, JsonProcessingException {
+        ObjectMapper mapper = new ObjectMapper();
+        PullRequestModel model = mapper.readValue(json, PullRequestModel.class);
+        return model;
     }
 
 }

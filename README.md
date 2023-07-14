@@ -9,7 +9,7 @@ JavaでAzure DevOpsのプルリクエストを取得する。
 ``` bash
 # project_idの取得方法は下記を参照。
 # https://sampleuser0001.github.io/cloud9_note/Azure/Azure_DevOps_API.html
-project_id=
+repository_id=
 pullrequest_id=
-gradle run --args="${project_id} ${pullrequest_id}"
+gradle run --args="${repository_id} ${pullrequest_id}"
 ```

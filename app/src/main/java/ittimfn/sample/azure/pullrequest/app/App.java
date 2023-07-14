@@ -11,8 +11,12 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 import org.apache.http.client.ClientProtocolException;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 public class App {
+
+    private Logger logger = LogManager.getLogger();
 
     private static final Path propertiesPath = Paths.get(System.getProperty("user.dir"),"src", "main", "resources","application.properties");
 
@@ -22,7 +26,7 @@ public class App {
         int pullrequestId = Integer.parseInt(args[i++]);
 
         GetPullRequestController controller = new GetPullRequestController(repositoryId, pullrequestId);
-        controller.get();
+        logger.info(controller.get());
     }
 
     public static void main(String[] args) throws IOException {
